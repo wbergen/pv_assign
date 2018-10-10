@@ -31,8 +31,15 @@ sort Action_State = struct action_state(
 proc
 	%% CONTROL MOD %%
 	ControlMod(gs:Global_State,as:Action_State) = 
-		% 
-		req_sys_state . ((undocked(gs) == true) -> MotorMod(action_state(mot_vert_down(as), mot_vert_up(as), false, false, brake_vert(as), true)) <> ControlMod(gs, as));
+		% no hor movement when undocked, + hbrake on
+		req_sys_state . ((undocked(gs) == true) -> MotorMod(action_state(mot_vert_down(as), mot_vert_up(as), false, false, brake_vert(as), true)) <> ControlMod(gs, as))
+
+		
+		% only undock when in rightmost
+		%+ recv(undock_pressed) . send(undock) . Controller(state |= docked,message, c_height)  <| req(rightmost) . recv(rightmost) |> Controller(state, message, c_height))
+
+		+ undock_pressed . ( sens_right(gs) -> ControlMod(global_state(sens_min_h(gs), sens_max_h(gs), sens_left(gs), sens_right(gs), true, calibrated(gs),emergency(gs), c_height(gs)), as) <> ControlMod(gs, as));
+
 
 	%% SENSOR MOD %%
 	SensorMod(gs:Global_State) =  ret_sys_state;
