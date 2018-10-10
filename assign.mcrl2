@@ -1,0 +1,46 @@
+act 
+	up_pressed, up_released,
+	down_pressed, down_released,
+	stop_pressed, resume_pressed, reset_pressed, undock_pressed,
+	ret_sys_state, req_sys_state,
+	set_action_state, req_action_state,
+	update_action_state, update_sys_state;
+
+sort Global_State = struct global_state(
+		sens_min_h: Bool,	 % = false
+		sens_max_h: Bool,	 % = false
+		sens_left: Bool,	 % = false
+		sens_right: Bool,	 % = false
+		undocked: Bool,		 % = false
+		calibrated: Bool,	 % = false
+		emergency: Bool, 	 % = false
+		c_height: Int		% = NULL
+	);
+% Access: undocked(Global_State) -> Global_State.undocked
+
+sort Action_State = struct action_state(
+		mot_vert_down: Bool,% = false
+		mot_vert_up: Bool,	% = false
+		mot_hor_down: Bool,	% = false
+		mot_hor_up: Bool,	% = false
+		brake_vert: Bool,	% = true
+		brake_hor: Bool		% = true
+	);
+
+
+proc
+	%% CONTROL MOD %%
+	ControlMod(gs:Global_State,as:Action_State) = 
+		% 
+		req_sys_state . ((undocked(gs) == true) -> MotorMod(action_state(mot_vert_down(as), mot_vert_up(as), false, false, brake_vert(as), true)) <> ControlMod(gs, as));
+
+	%% SENSOR MOD %%
+	SensorMod(gs:Global_State) =  ret_sys_state;
+
+	%% MOTOR MOD %%
+	MotorMod(as:Action_State) = set_action_state;
+
+init
+	allow({update_sys_state}, comm({req_sys_state | ret_sys_state -> update_sys_state, req_action_state | set_action_state -> update_action_state}, SensorMod(global_state(false,false,false,false,false,false,false,0)) || MotorMod(action_state(false,false,false,false,true,true)) || ControlMod(global_state(false,false,false,false,false,false,false,0), action_state(false,false,false,false,true,true))));
+
+	
