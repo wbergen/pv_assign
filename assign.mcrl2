@@ -14,7 +14,7 @@ sort Global_State = struct global_state(
 		undocked: Bool,		 % = false
 		calibrated: Bool,	 % = false
 		emergency: Bool, 	 % = false
-		c_height: Int		% = NULL
+		c_height: Int		 % = 0 -eq 'uncalibrated'
 	);
 % Access: undocked(Global_State) -> Global_State.undocked
 
@@ -32,22 +32,23 @@ proc
 	%% CONTROL MOD %%
 	ControlMod(gs:Global_State,as:Action_State) = 
 		% no hor movement when undocked, + hbrake on
-		req_sys_state . ((undocked(gs) == true) -> MotorMod(action_state(mot_vert_down(as), mot_vert_up(as), false, false, brake_vert(as), true)) <> ControlMod(gs, as))
+		req_sys_state . SensorMod(gs,as) . ((undocked(gs) == true) -> MotorMod(action_state(mot_vert_down(as), mot_vert_up(as), false, false, brake_vert(as), true)) <> ControlMod(gs, as))
 
 		
 		% only undock when in rightmost
-		%+ recv(undock_pressed) . send(undock) . Controller(state |= docked,message, c_height)  <| req(rightmost) . recv(rightmost) |> Controller(state, message, c_height))
-
-		+ undock_pressed . ( sens_right(gs) -> ControlMod(global_state(sens_min_h(gs), sens_max_h(gs), sens_left(gs), sens_right(gs), true, calibrated(gs),emergency(gs), c_height(gs)), as) <> ControlMod(gs, as));
-
+		+ undock_pressed . ( sens_right(gs) -> ControlMod(global_state(sens_min_h(gs), sens_max_h(gs), sens_left(gs), sens_right(gs), true, calibrated(gs),emergency(gs), c_height(gs)), as) <> ControlMod(gs, as))
+		
+	% Controller(state, message |= 0x10, c_height) <| c_height == NULL AND (state && 0x001) AND recv(up_pressed)  |> Controller(state, message, c_height)
+		
+	+ up_pressed . ( (c_height(gs) == 0 && undocked(gs) == false) -> MotorMod(action_state(false, true, false, false, false, true)) <> ControlMod(gs, as));
 
 	%% SENSOR MOD %%
-	SensorMod(gs:Global_State) =  ret_sys_state;
+	SensorMod(gs:Global_State, as:Action_State) =  ret_sys_state . ControlMod(gs, as);
 
 	%% MOTOR MOD %%
 	MotorMod(as:Action_State) = set_action_state;
 
 init
-	allow({update_sys_state}, comm({req_sys_state | ret_sys_state -> update_sys_state, req_action_state | set_action_state -> update_action_state}, SensorMod(global_state(false,false,false,false,false,false,false,0)) || MotorMod(action_state(false,false,false,false,true,true)) || ControlMod(global_state(false,false,false,false,false,false,false,0), action_state(false,false,false,false,true,true))));
+	allow({update_sys_state}, comm({req_sys_state | ret_sys_state -> update_sys_state, req_action_state | set_action_state -> update_action_state}, SensorMod(global_state(false,false,false,false,false,false,false,0), action_state(false,false,false,false,true,true)) || MotorMod(action_state(false,false,false,false,true,true)) || ControlMod(global_state(false,false,false,false,false,false,false,0), action_state(false,false,false,false,true,true))));
 
 	
