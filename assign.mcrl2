@@ -1,15 +1,19 @@
 act 
 	up_pressed, up_released,
 	down_pressed, down_released,
-	stop_pressed, resume_pressed, reset_pressed, undock_pressed,
+	stop_pressed, resume_pressed, 
+	reset_pressed, undock_pressed,
 	min_reached, max_reached,
 	right_reached, left_reached,
 	read_current_height,
+	docked,
 	reached_calibrated_height, above_calibrated_detected, below_calibrated_detected;
 
 act send_action_state, recv_action_state, comm_action_state: Action_State;
 act send_sys_state, recv_sys_state, comm_sys_state: Global_State;
 act send_current_height, recv_current_height, comm_current_height: Int;
+
+
 
 sort Global_State = struct global_state(
 		sens_min_h: Bool,	 % = false
@@ -42,15 +46,23 @@ sort Action_State = struct action_state(
 proc
 	%% CONTROL MOD %%
 	ControlMod(gs:Global_State,as:Action_State) = 
-	sum gs_from_sensor:Global_State.recv_sys_state(gs_from_sensor) . ControlMod(gs_from_sensor, as) .
+
+	 resume_pressed . (emergency(gs)) ->ControlMod(global_state(sens_min_h(gs), sens_max_h(gs), sens_left(gs), sens_right(gs), undocked(gs), calibrated(gs),false, h_above_cal(gs), h_below_cal(gs)), action_state(false, false, false, false, true, true)) . send_action_state(action_state(false, false, false, false, true, true))
+	+ stop_pressed . (!emergency(gs)) ->ControlMod(global_state(sens_min_h(gs), sens_max_h(gs), sens_left(gs), sens_right(gs), undocked(gs), calibrated(gs), true, h_above_cal(gs), h_below_cal(gs)), action_state(false, false, false, false, true, false)) . send_action_state(action_state(false, false, false, false, true, false))
+	+ docked. ControlMod(global_state(sens_min_h(gs), sens_max_h(gs), sens_left(gs), sens_right(gs), false, calibrated(gs), emergency(gs), h_above_cal(gs), h_below_cal(gs)), as) 
+	
+	+  reset_pressed . (!undocked(gs)) ->ControlMod(global_state(sens_min_h(gs), sens_max_h(gs), sens_left(gs), sens_right(gs), undocked(gs), true, emergency(gs), h_above_cal(gs), h_below_cal(gs)),as)
+<> ControlMod(global_state(sens_min_h(gs), sens_max_h(gs), sens_left(gs), sens_right(gs), undocked(gs), false, emergency(gs), false, false),as)
+
+	
+	+ sum gs:Global_State.recv_sys_state(gs) .
 	(
 		(undocked(gs)) -> send_action_state(action_state(mot_vert_down(as), mot_vert_up(as), false, false, brake_vert(as), true))
 		+ undock_pressed . (!undocked(gs) && sens_right(gs)) -> ControlMod(global_state(sens_min_h(gs), sens_max_h(gs), sens_left(gs), sens_right(gs), false, calibrated(gs),emergency(gs), h_above_cal(gs), h_below_cal(gs)),as)
 		+ (!calibrated(gs) && !undocked(gs)) -> up_pressed . send_action_state(action_state(false, true, false, false, false, true)) + (up_released + down_released) . send_action_state(action_state(false, false, false, false, true, true)) + down_pressed . send_action_state(action_state(true, false, false, false, false, true))
-		+ (!undocked(gs) -> reset_pressed . ControlMod(global_state(sens_min_h(gs), sens_max_h(gs), sens_left(gs), sens_right(gs), undocked(gs), true, emergency(gs), h_above_cal(gs), h_below_cal(gs)),as))
-		+ (undocked(gs) -> reset_pressed . ControlMod(global_state(sens_min_h(gs), sens_max_h(gs), sens_left(gs), sens_right(gs), undocked(gs), false, emergency(gs), false, false),as))
+		
 		+ (!undocked(gs) && calibrated(gs)) -> 
-				up_pressed . (h_below_cal(gs) -> 
+				(up_pressed . (h_below_cal(gs) -> 
 					send_action_state(action_state(false, true, false, false, false, true))) . ControlMod(gs, action_state(false, true, false, false, false, true))
 				+ up_released . ((!h_above_cal(gs) && !h_below_cal(gs)) ->
 					send_action_state(action_state(false, false, false, false, true, true))) . ControlMod(gs, action_state(false, false, false, false, true, true))
@@ -58,28 +70,28 @@ proc
 					(!sens_left(gs) ->
 					send_action_state(action_state(false, false, true, false, true, false))) . ControlMod(gs, action_state(false, false, true, false, true, false))
 					)
-		+ (!undocked(gs) && calibrated(gs)) -> 
-				down_pressed . (h_above_cal(gs) -> 
+				
+				+ down_pressed . (h_above_cal(gs) -> 
 					send_action_state(action_state(true, false, false, false, false, true))) . ControlMod(gs, action_state(true, false, false, false, false, true))
 				+ down_released . ((!h_above_cal(gs) && !h_below_cal(gs)) ->
 					send_action_state(action_state(false, false, false, false, true, true))) . ControlMod(gs, action_state(false, false, false, false, true, true))
 				+ down_pressed . ((!h_above_cal(gs) && !h_below_cal(gs)) ->
 					(!sens_right(gs) ->
 					send_action_state(action_state(false, false, false, true, true, false))) . ControlMod(gs, action_state(false, false, false, true, true, false))
-					)
+					)) <> ControlMod(gs,as)
+		
 		+ (!calibrated(gs) && undocked(gs)) ->
-				up_pressed . send_action_state(action_state(false, true, false, false, false, true))
+				(up_pressed . send_action_state(action_state(false, true, false, false, false, true))
 				+ up_released . send_action_state(action_state(false, false, false, false, true, true))
 				+ down_released . send_action_state(action_state(false, false, false, false, true, true))
-				+ down_pressed . send_action_state(action_state(false, true, false, false, false, true))
+				+ down_pressed . send_action_state(action_state(false, true, false, false, false, true))) <> ControlMod(gs, as)
 		+ (sens_max_h(gs)) ->
 				send_action_state(action_state(false, false, false, false, true, true))
 		+ (sens_min_h(gs)) ->
 				send_action_state(action_state(false, false, false, false, true, true))
-		+ stop_pressed . ControlMod(global_state(sens_min_h(gs), sens_max_h(gs), sens_left(gs), sens_right(gs), undocked(gs), calibrated(gs), true, h_above_cal(gs), h_below_cal(gs)), action_state(false, false, false, false, true, false)) . send_action_state(action_state(false, false, false, false, true, false))
-		+ (emergency(gs)) -> resume_pressed . ControlMod(global_state(sens_min_h(gs), sens_max_h(gs), sens_left(gs), sens_right(gs), undocked(gs), calibrated(gs),false, h_above_cal(gs), h_below_cal(gs)), action_state(false, false, false, false, true, true)) . send_action_state(action_state(false, false, false, false, true, true))
+		
 
-	);
+	). ControlMod(gs, as) ;
 
 
 	%% SENSOR MOD %%
@@ -99,13 +111,20 @@ proc
 	
 
 	%% MOTOR MOD %%	
-	MotorMod(as:Action_State) = sum as:Action_State.recv_action_state(as).MotorMod(as);
+	MotorMod= sum as:Action_State.recv_action_state(as).MotorMod;
 	
 
 init
-	allow({comm_action_state, comm_sys_state, min_reached, comm_current_height, max_reached, right_reached, left_reached, send_current_height, recv_current_height}, 
-	comm({send_sys_state | recv_sys_state -> comm_sys_state, send_action_state | recv_action_state -> comm_action_state, send_current_height | recv_current_height -> comm_current_height},
+	allow({comm_action_state, comm_sys_state, docked,
+	up_pressed, up_released,
+	down_pressed, down_released,
+	stop_pressed, resume_pressed, reset_pressed, undock_pressed,
+	min_reached, max_reached,
+	right_reached, left_reached,
+	reached_calibrated_height, above_calibrated_detected, below_calibrated_detected}, 
+	comm({send_sys_state | recv_sys_state -> comm_sys_state, send_action_state | recv_action_state -> comm_action_state},
 
-	 SensorMod(global_state(false,false,false,false,false,false,false,false,false)) || MotorMod(action_state(false,false,false,false,true,true)) || ControlMod(global_state(false,false,false,false,false,false,false,false,false), action_state(false,false,false,false,true,true))));
+	 MotorMod ||SensorMod(global_state(false,false,false,false,false,false,false,false,false)) 
+	||  ControlMod(global_state(false,false,false,false,false,false,false,false,false), action_state(false,false,false,false,true,true))));
 
 	
