@@ -47,7 +47,20 @@ proc
 	%% CONTROL MOD %%
 	ControlMod(gs:Global_State,as:Action_State) = 
 	% communicate with sensor
-	sum gs:Global_State.recv_sys_state(gs) . ControlMod(gs, as)
+	sum gs:Global_State.recv_sys_state(gs) .ControlMod(gs, as)
++	
+	% reach the maximum height 
+		% (sens_max_h(gs_t)) ->
+				%up_released.
+				max_reached.up_released.
+				% stop
+				ControlMod(gs,action_state(false, false, false, false, true, true)).send_action_state(action_state(false, false, false, false, true, true))
+		% reach the minimum height
+		+ min_reached.
+				% stop
+				ControlMod(gs, action_state(false, false, false, false, true, true)).send_action_state(action_state(false, false, false, false, true, true))
+
+		
 	
 	% in emergency mode, press resume - > nomarl mode
 	+ resume_pressed . (emergency(gs)) ->  ControlMod(global_state(sens_min_h(gs), sens_max_h(gs), sens_left(gs), sens_right(gs), docked(gs), calibrated(gs),false, h_above_cal(gs), h_below_cal(gs)), action_state(false, false, false, false, true, true)) . send_action_state(action_state(false, false, false, false, true, true)) <> ControlMod(gs,as)
@@ -66,9 +79,10 @@ proc
 	+ undock_pressed . (docked(gs) && sens_right(gs)) -> ControlMod(global_state(sens_min_h(gs), sens_max_h(gs), sens_left(gs), sens_right(gs), false, calibrated(gs),emergency(gs), h_above_cal(gs), h_below_cal(gs)),as)
 	
 	% uncalibrated && docked, up/down press, turn on up/down motor, turn on h brake
-	+ (!calibrated(gs) && docked(gs)) -> (up_pressed . send_action_state(action_state(false, true, false, false, false, true)) .ControlMod(gs,action_state(false, true, false, false, false, true))
-									+ (up_released + down_released) . send_action_state(action_state(false, false, false, false, true, true)).ControlMod(gs,action_state(false, false, false, false, true, true))
-									+ down_pressed . send_action_state(action_state(true, false, false, false, false, true)).ControlMod(gs,action_state(true, false, false, false, false, true)))
+	+ (!calibrated(gs) && docked(gs)) -> (up_pressed .ControlMod(gs,action_state(false, true, false, false, false, true)) . send_action_state(action_state(false, true, false, false, false, true))
+									+ mot_vert_up(as) -> up_released.ControlMod(gs,action_state(false, false, false, false, true, true)) . send_action_state(action_state(false, false, false, false, true, true))
+									+ mot_vert_down(as)->down_released.ControlMod(gs,action_state(false, false, false, false, true, true)) . send_action_state(action_state(false, false, false, false, true, true))
+									+ down_pressed .ControlMod(gs,action_state(true, false, false, false, false, true)). send_action_state(action_state(true, false, false, false, false, true)))
 		
 	% docked && calibrated
 		+ (docked(gs) && calibrated(gs)) -> 
@@ -108,8 +122,13 @@ proc
 
 				
 				%up/ down release, at the saved height 
-				+(down_released+up_released) .(
-						(!h_above_cal(gs) && !h_below_cal(gs)) ->
+				+(mot_vert_down(as)||mot_hor_up(as))->(down_released).(
+						%(!h_above_cal(gs) && !h_below_cal(gs)) ->
+							% stop the bed
+							ControlMod(gs, action_state(false, false, false, false, true, true)). send_action_state(action_state(false, false, false, false, true, true)) 
+				)
+				+(mot_vert_up(as)||mot_hor_down(as))->(up_released) .(
+						%(!h_above_cal(gs) && !h_below_cal(gs)) ->
 							% stop the bed
 							ControlMod(gs, action_state(false, false, false, false, true, true)). send_action_state(action_state(false, false, false, false, true, true)) 
 				)
@@ -121,11 +140,11 @@ proc
 				(
 				up_pressed . %sens_max_h(gs) ->
 					% stop
-					ControlMod(gs, action_state(false, false, false, false, true, true)). send_action_state(action_state(false, false, false, false, true, true)) 
+					ControlMod(gs, action_state(false, true, false, false, false, true)). send_action_state(action_state(false, true, false, false, false, true)) 
 					%<>ControlMod(gs, action_state(true, false, false, false, false, true)). send_action_state(action_state(true, false, false, false, false, true))
-				+ up_released .  ControlMod(gs, action_state(false, false, false, false, true, true)). send_action_state(action_state(false, false, false, false, true, true))
-				+ down_released .  ControlMod(gs, action_state(false, false, false, false, true, true)). send_action_state(action_state(false, false, false, false, true, true))
-				+ down_pressed .  ControlMod(gs, action_state(false, true, false, false, false, true)). send_action_state(action_state(false, true, false, false, false, true))) 
+				+ mot_vert_up(as) -> up_released.ControlMod(gs,action_state(false, false, false, false, true, true)) . send_action_state(action_state(false, false, false, false, true, true))
+				+ mot_vert_down(as)->down_released.ControlMod(gs,action_state(false, false, false, false, true, true)) . send_action_state(action_state(false, false, false, false, true, true))
+				+ down_pressed .  ControlMod(gs, action_state(true, false, false, false, false, true)). send_action_state(action_state(true, false, false, false, false, true))) 
 
 ;
 
