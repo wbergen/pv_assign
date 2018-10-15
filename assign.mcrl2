@@ -5,7 +5,6 @@ act
 	reset_pressed, undock_pressed,
 	min_reached, max_reached,
 	right_reached, left_reached,
-	read_current_height,
 	do_dock,
 	reached_calibrated_height, above_calibrated_detected, below_calibrated_detected;
 
@@ -166,7 +165,7 @@ proc
 	
 
 	%% MOTOR MOD %%	
-	MotorMod(as: Action_State)= sum as:Action_State.recv_action_state(as).MotorMod(as);
+	MotorMod= sum as:Action_State.recv_action_state(as).MotorMod;
 	
 
 init
@@ -179,7 +178,7 @@ init
 	reached_calibrated_height, above_calibrated_detected, below_calibrated_detected}, 
 	comm({send_sys_state | recv_sys_state -> comm_sys_state, send_action_state | recv_action_state -> comm_action_state},
 
-	 MotorMod(action_state(false,false,false,false,true,true)) ||SensorMod(global_state(false,false,false,false,false,false,false,false,false)) 
+	 MotorMod ||SensorMod(global_state(false,false,false,false,false,false,false,false,false)) 
 	||  ControlMod(global_state(false,false,false,false,false,false,false,false,false), action_state(false,false,false,false,true,true))));
 
 	
