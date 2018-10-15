@@ -119,19 +119,24 @@ proc
 						)
 					)
 
-				
-				%up/ down release, at the saved height 
-				+(mot_vert_down(as)||mot_hor_up(as))->(down_released).(
-						%(!h_above_cal(gs) && !h_below_cal(gs)) ->
-							% stop the bed
-							ControlMod(gs, action_state(false, false, false, false, true, true)). send_action_state(action_state(false, false, false, false, true, true)) 
+				% if mot_vertDown && saved_height_reached -> down_relased
+				% if mot_hor_up && right_most_reached -> down_relased				
+
+				+(!h_above_cal(gs) && !h_below_cal(gs)) ->
+				(
+					%up/ down release, at the saved height 
+					(mot_vert_down(as)||mot_hor_up(as))->(down_released).(
+							%(!h_above_cal(gs) && !h_below_cal(gs)) ->
+								% stop the bed
+								ControlMod(gs, action_state(false, false, false, false, true, true)). send_action_state(action_state(false, false, false, false, true, true)) 
+					)
+					+(mot_vert_up(as)||mot_hor_down(as))->(up_released) .(
+							%(!h_above_cal(gs) && !h_below_cal(gs)) ->
+								% stop the bed
+								ControlMod(gs, action_state(false, false, false, false, true, true)). send_action_state(action_state(false, false, false, false, true, true)) 
+					)
 				)
-				+(mot_vert_up(as)||mot_hor_down(as))->(up_released) .(
-						%(!h_above_cal(gs) && !h_below_cal(gs)) ->
-							% stop the bed
-							ControlMod(gs, action_state(false, false, false, false, true, true)). send_action_state(action_state(false, false, false, false, true, true)) 
-				)
-			)
+			) %%END CALIBRATED && DOCKED
 
 
 		% uncalibrated && undocked, up/down press, turn on motor, or up/down release, turn off
@@ -179,6 +184,6 @@ init
 	comm({send_sys_state | recv_sys_state -> comm_sys_state, send_action_state | recv_action_state -> comm_action_state},
 
 	 MotorMod ||SensorMod(global_state(false,false,false,false,false,false,false,false,false)) 
-	||  ControlMod(global_state(false,false,false,false,false,false,false,false,false), action_state(false,false,false,false,true,true))));
+	||  ControlMod(global_state(false,false,false,true,false,false,false,false,false), action_state(false,false,false,false,true,true))));
 
 	
