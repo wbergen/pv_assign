@@ -1,1 +1,3 @@
-[true*. comm_sys_state(global_state((true||false), (true||false), (true||false),(true||false), (true||false), (true||false), (true||false), (true||false), (true||false))).(up_pressed.!up_released || down_pressed.!down_released).reach_saved_height] true
+%[true*. comm_sys_state(global_state((true||false), (true||false), (true||false),(true||false), (true||false), (true||false), (true||false), (true||false), (true||false))).((up_pressed.!up_released) || (down_pressed.!down_released)).reach_saved_height] true
+
+[true*. comm_sys_state(global_state((true||false), (true||false), (true||false),(true||false), true, true, (true||false), (true||false), (true||false))).(up_pressed || down_pressed).reached_calibrated_height.comm_action_state(action_state((true||false),(true||false),(true||false),(true||false),true, true))] true
