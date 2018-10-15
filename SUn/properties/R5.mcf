@@ -1,0 +1,1 @@
+[true*. comm_sys_state(global_state((true||false), (true||false), (true||false),(true||false), (true||false), (true||false), (true||false), (true||false), (true||false))).(up_pressed.!up_released || down_pressed.!down_released).reach_saved_height] true

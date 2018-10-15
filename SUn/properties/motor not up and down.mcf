@@ -1,0 +1,1 @@
+[true*] (mot_vert_down(as:Action_State) && mot_vert_up(as)) false
