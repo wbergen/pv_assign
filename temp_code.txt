@@ -104,7 +104,7 @@ proc
 			(
 				reset_pressed . send_calibrated(false) . ControlMod(gs)
 				+ do_dock . send_docked(true) . ControlMod(gs)
-				+ (mot_vert_up(gs)) ->
+				+ (mot_vert_up) ->
 					(
 						up_released . send_action_state(global_state(sens_min_h(gs), sens_max_h(gs), sens_left(gs), sens_right(gs), docked(gs), calibrated(gs), emergency(gs), h_above_cal(gs), h_below_cal(gs), false, false, false, false, true, true)) . send_stop . ControlMod(global_state(sens_min_h(gs), sens_max_h(gs), sens_left(gs), sens_right(gs), docked(gs), calibrated(gs), emergency(gs), h_above_cal(gs), h_below_cal(gs),false, false, false, false, true, true))
 					
@@ -139,7 +139,7 @@ proc
 	    		(
 				reset_pressed . send_calibrated(true) . ControlMod(gs)
 				+ undock_pressed . send_docked(false) . ControlMod(gs)
-	    		+ (mot_vert_up(gs)) ->
+	    		+ (mot_vert_up) ->
 					(
 						up_released . send_action_state(global_state(sens_min_h(gs), sens_max_h(gs), sens_left(gs), sens_right(gs), docked(gs), calibrated(gs), emergency(gs), h_above_cal(gs), h_below_cal(gs), false, false, false, false, true, true)) . send_stop . ControlMod(global_state(sens_min_h(gs), sens_max_h(gs), sens_left(gs), sens_right(gs), docked(gs), calibrated(gs), emergency(gs), h_above_cal(gs), h_below_cal(gs),false, false, false, false, true, true))
 					
@@ -214,7 +214,7 @@ proc
 
 					+ (mot_vert_down(gs)) ->
 						(
-							down_released . send_stop . send_action_state(global_state(sens_min_h(gs), sens_max_h(gs), sens_left(gs), sens_right(gs), docked(gs), calibrated(gs), emergency(gs), h_above_cal(gs), h_below_cal(gs), false, false, false, false, true, true)) . ControlMod(global_state(sens_min_h(gs), sens_max_h(gs), sens_left(gs), sens_right(gs), docked(gs), calibrated(gs), emergency(gs), h_above_cal(gs), h_below_cal(gs),false, false, false, false, true, true))
+							down_released send_stop . send_action_state(global_state(sens_min_h(gs), sens_max_h(gs), sens_left(gs), sens_right(gs), docked(gs), calibrated(gs), emergency(gs), h_above_cal(gs), h_below_cal(gs), false, false, false, false, true, true)) . ControlMod(global_state(sens_min_h(gs), sens_max_h(gs), sens_left(gs), sens_right(gs), docked(gs), calibrated(gs), emergency(gs), h_above_cal(gs), h_below_cal(gs),false, false, false, false, true, true))
 							+ (sens_min_h(gs)) ->
 								(
 									send_stop . send_action_state(global_state(sens_min_h(gs), sens_max_h(gs), sens_left(gs), sens_right(gs), docked(gs), calibrated(gs), emergency(gs), h_above_cal(gs), h_below_cal(gs), false, false, false, false, true, true)) . ControlMod(global_state(sens_min_h(gs), sens_max_h(gs), sens_left(gs), sens_right(gs), docked(gs), calibrated(gs), emergency(gs), h_above_cal(gs), h_below_cal(gs),false, false, false, false, true, true))
@@ -285,17 +285,16 @@ proc
 	%% SENSOR MOD %%
 	SensorMod(gs:Global_State) = 
 		sensor_query_send.sum gs:Global_State.sensor_update_recv(gs) . (
-
-			(mot_vert_down(gs)) -> min_reached . send_sens_max_h(false) . send_sens_min_h(true) . SensorMod(gs) <>
-				(mot_vert_up(gs)) -> max_reached . send_sens_min_h(false) . send_sens_max_h(true) . SensorMod(gs) <>
-					(mot_hor_down(gs)) -> left_reached . send_rightmost(false) . send_leftmost(true) . SensorMod(gs) <>
-						(mot_hor_up(gs)) -> right_reached . send_leftmost(false) . send_rightmost(true) . SensorMod(gs) <>
-							(calibrated(gs)) -> (
-								above_calibrated_detected . send_h_below_cal(false) . send_h_above_cal(true) . SensorMod(gs)
-								+ below_calibrated_detected . send_h_above_cal(false) . send_h_below_cal(true) . SensorMod(gs)
-								+ reached_calibrated_height . send_h_above_cal(false) . send_h_below_cal(false) . SensorMod(gs)
-			) <> SensorMod(gs)
-		);
+			(mot_vert_down(gs)) -> min_reached . send_sens_min_h(true)
+			+ (mot_vert_up(gs)) -> max_reached . send_sens_max_h(true)
+			+ (mot_hor_down(gs)) -> left_reached . send_leftmost(true)
+			+ (mot_hor_up(gs)) -> right_reached . send_rightmost(true)
+			+ (calibrated(gs)) -> (
+				above_calibrated_detected . send_h_above_cal(true)
+				+ below_calibrated_detected . send_h_below_cal(true)
+				+ reached_calibrated_height . send_h_above_cal(false) . send_h_below_cal(false)
+			)
+		) . SensorMod(gs);
 
 	
 	%% MOTOR MOD %%	
@@ -303,7 +302,6 @@ proc
 	
 
 init
-	hide({comm_control_query, comm_control_update, comm_sensor_query, comm_sensor_update},
 	allow({comm_control_query, comm_control_update, comm_sensor_query, comm_sensor_update, comm_docked,
 		comm_calibrated, comm_emergency, comm_h_above_cal, comm_h_below_cal,
 		comm_sens_min_h, comm_sens_max_h, comm_leftmost, comm_rightmost, comm_mot_vert_down,
@@ -333,6 +331,6 @@ init
 	},
 
 	 MotorMod ||SensorMod(global_state(false,false,false,true,false,false,false,false,false,false,false,false,false,true,true)) 
-	||  ControlMod(global_state(false,false,false,true,false,false,false,false,false,false,false,false,false,true,true)) || GlobalMod(global_state(false,false,false,true,false,false,false,false,false,false,false,false,false,true,true)))));
+	||  ControlMod(global_state(false,false,false,true,false,false,false,false,false,false,false,false,false,true,true)) || GlobalMod(global_state(false,false,false,true,false,false,false,false,false,false,false,false,false,true,true))));
 
 	

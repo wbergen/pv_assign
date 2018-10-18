@@ -1,0 +1,237 @@
+#Pseudo Code and Assumptions
+
+(!emergency(gs)) ->
+(
+	allow: stop_pressed
+
+	stop_pressed							=> set emergency, call self
+	(!docked(gs) && !calibrated(gs)) ->
+	(
+		{allow: up_pressed, up_released, down_pressed, down_released, do_dock}
+		
+		do_dock 							=> docked && !calibrated
+		up/down_pressed, up/down_released 	=> send action, call self
+
+		mot_vert_up ->
+		(
+			up_released						=> send_stop, call self
+			sens_max_h ->
+			(
+				send_stop					=> and call self
+			)
+
+		)
+
+		mot_vert_down ->
+		(
+			down_released					=> send_stop, call self
+			sens_min_h ->
+			(
+				send_stop					=> and call self
+			)
+		)
+
+		!mot_vert_up && !mot_vert_down ->
+		(
+			!sens_min_h ->
+			(
+				down_pressed					=> send action, call self
+			)
+			!sens_max_h ->
+			(
+				up_pressed						=> send action, call self
+			)
+			(SHOULDN"T HAPPEN) sens_max_h && sens_min_h ->
+			(
+				- REQUIRE that the setting of sens_max_h and min_h never sets them both 'on'
+				call self
+			)
+
+			
+			
+		)
+
+	)
+
+	+ (docked && !calibrated(gs)) ->
+	(
+
+		allow: up_pressed, up_released, reset_pressed, down_pressed, down_released, undock_pressed
+
+		up/down_pressed, up/down_released 	=> send action, call self
+		undock_pressed						=> !docked && !calibrated
+		reset_pressed						=> docked && calibrated
+
+		mot_vert_up ->
+		(
+			up_released						=> send_stop, call self
+			sens_max_h ->
+			(
+				send_stop					=> and call self
+			)
+
+		)
+
+		mot_vert_down ->
+		(
+			down_released					=> send_stop, call self
+			sens_min_h ->
+			(
+				send_stop					=> and call self
+			)
+		)
+
+		!mot_vert_up && !mot_vert_down ->
+		(
+			!sens_min_h ->
+			(
+				down_pressed					=> send action, call self
+			)
+			!sens_max_h ->
+			(
+				up_pressed						=> send action, call self
+			)
+			(SHOULDN"T HAPPEN) sens_max_h && sens_min_h ->
+			(
+				- REQUIRE that the setting of sens_max_h and min_h never sets them both 'on'
+				call self
+			)
+
+
+	)
+
+	+ (!docked(gs) && calibrated(gs)) ->
+	(
+
+		allow: up_pressed, up_released, reset_pressed, down_pressed, down_released, do_dock
+
+		up/down_pressed, up/down_released 	=> send action, call self
+		reset_pressed						=> !docked && !calibrated
+		do_dock								=> docked && calibrated
+
+		mot_vert_up ->
+		(
+			up_released						=> send_stop, call self
+			sens_max_h ->
+			(
+				send_stop					=> and call self
+			)
+
+		)
+
+		mot_vert_down ->
+		(
+			down_released					=> send_stop, call self
+			sens_min_h ->
+			(
+				send_stop					=> and call self
+			)
+		)
+
+		!mot_vert_up && !mot_vert_down ->
+		(
+			!sens_min_h ->
+			(
+				down_pressed					=> send action, call self
+			)
+			!sens_max_h ->
+			(
+				up_pressed						=> send action, call self
+			)
+			(SHOULDN"T HAPPEN) sens_max_h && sens_min_h ->
+			(
+				- REQUIRE that the setting of sens_max_h and min_h never sets them both 'on'
+				call self
+			)
+
+
+	)
+
+	+ (docked(gs) && calibrated(gs)) ->
+	(
+		allow: up_pressed, up_released, down_pressed, down_released, undock_pressed
+
+		up/down_pressed, up/down_released 	=> send action, call self
+
+		rightmost ->
+		(
+			undock_pressed						=> !docked && calibrated
+		)
+
+		mot_vert_up ->
+		(
+			up_released						=> send_stop, call self
+			sens_max_h ->
+			(
+				send_stop					=> and call self
+			)
+			!h_above_cal && !h_below_cal ->
+			(
+				send_stop					=> and call self
+			)
+		)
+
+		mot_hor_down ->
+		(
+			up_released						=> send_stop, call self
+			sens_left ->
+			(
+				send_stop					=> stop, call self
+			)
+		)
+
+		mot_hor_up ->
+		(
+			down_released					=> send_stop, call self
+			sens_right ->
+			(
+				send_stop					=> stop, call self
+			)
+		)
+
+		mot_vert_down ->
+		(
+			down_released					=> send_stop, call self
+			sens_min_h ->
+			(
+				send_stop					=> and call self
+			)
+			!h_above_cal && !h_below_cal ->
+			(
+				send_stop					=> and call self
+			)
+		)
+
+		!mot_vert_up && !mot_vert_down && !mot_hor_up && !mot_hor_down ->
+		(
+
+			h_above_cal ->
+			(
+				down_pressed					=> send action MOVE DOWN, call self
+			)
+			
+			h_below_cal ->
+			(
+				up_pressed						=> send action, call self
+			)
+			!h_above_cal && !h_above_cal ->
+			(
+				down_pressed					=> send action MOVE IN
+				up_pressed						=> send action MOVE OUT
+			)
+
+		)
+	)
+
+
+) <>
+(
+	allow: resume
+)
+
+
+
+Assumps:
+ - Reset button while calibrated (and docked) has no effect.  're'-calibrating requires undocking.
+ - Our sensor module mandates only one of each of the following pairs may be 'on' at any given time: (sens_min_h, sens_max_h), (sens_left, sens_right), (h_above_cal, h_below_cal)
+ - Only a single motor may be moving at any given time, in a single direction only.
