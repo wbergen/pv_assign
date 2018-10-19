@@ -335,6 +335,7 @@ init
 		send_mot_vert_down | recv_mot_vert_down -> comm_mot_vert_down,
 		send_mot_vert_up | recv_mot_vert_up -> comm_mot_vert_up,
 		send_mot_hor_down | recv_mot_hor_down -> comm_mot_hor_down,
+		send_mot_hor_up | recv_mot_hor_up -> comm_mot_hor_up,
 		send_stop | recv_stop -> comm_stop,
 
 		acquire_c_lock | acquire_c_lock -> comm_c_acquire_lock,
