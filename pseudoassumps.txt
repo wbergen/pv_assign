@@ -173,7 +173,7 @@
 
 		mot_hor_down ->
 		(
-			up_released						=> send_stop, call self
+			down_released					=> send_stop, call self
 			sens_left ->
 			(
 				send_stop					=> stop, call self
@@ -182,7 +182,7 @@
 
 		mot_hor_up ->
 		(
-			down_released					=> send_stop, call self
+			up_released						=> send_stop, call self
 			sens_right ->
 			(
 				send_stop					=> stop, call self
@@ -216,8 +216,8 @@
 			)
 			!h_above_cal && !h_above_cal ->
 			(
-				down_pressed					=> send action MOVE IN
-				up_pressed						=> send action MOVE OUT
+				down_pressed					=> send action MOVE OUT
+				up_pressed						=> send action MOVE IN
 			)
 
 		)

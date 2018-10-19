@@ -1,3 +1,7 @@
 %[true* . !comm_sys_state(global_state((true||false), (true||false), (true||false), true, (true||false), (true||false),(true||false),(true||false),(true||false))) . comm_sys_state(global_state((true||false), (true||false), (true||false),(true||false),true,(true||false),(true||false),(true||false),(true||false)))]false
 
-[true* . !comm_control_update(global_state((true||false), (true||false), (true||false), true, (true||false), (true||false),(true||false),(true||false),(true||false),(true||false),(true||false),(true||false),(true||false),(true||false),(true||false))) . comm_docked(false)]false
+%[true* . !comm_control_update(global_state((true||false), (true||false), (true||false), true, (true||false), (true||false),(true||false),(true||false),(true||false),(true||false),(true||false),(true||false),(true||false),(true||false),(true||false))) . true* . comm_docked(false)]false
+
+%[true* . !comm_control_update(global_state((true||false), (true||false), (true||false), true, (true||false), (true||false),(true||false),(true||false),(true||false),(true||false),(true||false),(true||false),(true||false),(true||false),(true||false))) . (conditions where rightmost is turned off)]< true * . comm_docked(false)>false
+
+[true* . comm_control_update(global_state((true||false), (true||false), (true||false), false, (true||false), (true||false),(true||false),(true||false),(true||false),(true||false),(true||false),(true||false),(true||false),(true||false),(true||false))) . undock_pressed]false
