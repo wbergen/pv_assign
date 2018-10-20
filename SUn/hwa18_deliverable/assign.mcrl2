@@ -56,6 +56,8 @@ sort Global_State = struct global_state(
 		brake_hor: Bool	       % = true
 	);
 
+%GlobalMod(global_state(sens_min_h(gs), sens_max_h(gs), sens_left(gs), sens_right(gs), docked(gs), calibrated(gs), emergency(gs), h_above_cal(gs), h_below_cal(gs), mot_vert_down(gs), mot_vert_up(gs), mot_hor_down(gs), mot_hor_up(gs), brake_vert(gs), brake_hor(gs)))
+
 proc
 	%% GlobalState Process %%
 	GlobalMod(lock:Bool, gs:Global_State) = 
@@ -87,6 +89,11 @@ proc
 
 ;
 
+
+%act recv_mot_vert_down, recv_mot_vert_up, recv_mot_hor_down, recv_mot_hor_up: Bool;
+%act recv_brake_vert, recv_brake_hor
+
+%, mot_vert_down(gs), mot_vert_up(gs), mot_hor_down(gs), mot_hor_up(gs), brake_vert(gs), brake_hor(gs)
 	%% CONTROL MOD %%
 	ControlMod(gs:Global_State) = 
 	% communicate with sensor
@@ -296,6 +303,19 @@ proc
 
 	%% SENSOR MOD %%
 	SensorMod(gs:Global_State) = 
+%		acquire_s_lock.sum gs:Global_State.sensor_update_recv(gs) . (
+%
+%			(mot_vert_down(gs)) -> min_reached . send_sens_max_h(false) . send_sens_min_h(true) . release_s_lock . SensorMod(gs) <>
+%				(mot_vert_up(gs)) -> max_reached . send_sens_min_h(false) . send_sens_max_h(true) . release_s_lock . SensorMod(gs) <>
+%					(mot_hor_down(gs)) -> left_reached . send_rightmost(false) . send_leftmost(true) . release_s_lock . SensorMod(gs) <>
+%						(mot_hor_up(gs)) -> right_reached . send_leftmost(false) . send_rightmost(true) . release_s_lock . SensorMod(gs) <>
+%							(calibrated(gs)) -> (
+%								above_calibrated_detected . send_h_below_cal(false) . send_h_above_cal(true) . release_s_lock . SensorMod(gs)
+%								+ below_calibrated_detected . send_h_above_cal(false) . send_h_below_cal(true) . release_s_lock . SensorMod(gs)
+%								+ reached_calibrated_height . send_h_above_cal(false) . send_h_below_cal(false) . release_s_lock . SensorMod(gs)
+%			) <> release_s_lock . SensorMod(gs)
+%		);
+
 		acquire_s_lock.sum gs:Global_State.sensor_update_recv(gs) . (
 
 			(mot_vert_down(gs) && (!calibrated(gs) || !docked(gs))) -> min_reached . send_sens_max_h(false) . send_sens_min_h(true) . release_s_lock . SensorMod(gs)

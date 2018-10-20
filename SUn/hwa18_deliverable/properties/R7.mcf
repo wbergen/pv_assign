@@ -1,0 +1,5 @@
+%[true*. (if docked == true && calibrated == true && h_below == false && h_above == false) . !comm_action_state(... v_mot_up == true …)]T
+
+%[true*.comm_sys_state(global_state((true||false), (true||false), (true||false), (true||false), true, true, false, false, false)) . !comm_action_state(action_state((true||false), true, (true||false), (true||false), false, (true||false)))]true
+
+[true* . comm_control_update(global_state((true||false),(true||false),(true||false),(true||false),true, true,(true||false),false, false,(true||false),(true||false),(true||false),(true||false),(true||false),(true||false)))]<true . comm_action_state(global_state((true||false),(true||false),(true||false),(true||false),(true||false),(true||false),(true||false),(true||false),(true||false),(true||false),true,(true||false),(true||false),(true||false),(true||false)))>false

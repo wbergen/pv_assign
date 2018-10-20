@@ -1,0 +1,5 @@
+%[true*.(If calibrated == true && above == false && below == false) . up_released . up_pressed . comm_action_state(h motor left == true && h_brake == false)]T
+
+%[true*.comm_sys_state(global_state((true || false), (true || false),(true || false),(true || false), true, true, false, false,false)) . up_released . up_pressed . comm_action_state(action_state(false, false, true, false, true, false))]true
+
+[true* . comm_control_update(global_state((true||false),(true||false),(true||false),(true||false),true,true,(true||false),false,false,(true||false),(true||false),(true||false),(true||false),(true||false),(true||false))) . up_pressed . comm_action_state(global_state((true||false),(true||false),(true||false),(true||false),(true||false),(true||false),(true||false),(true||false),(true||false),(true||false),(true||false),true,(true||false),(true||false),false))]true

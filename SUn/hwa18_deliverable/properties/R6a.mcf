@@ -1,0 +1,2 @@
+% only UP_PRESSED should be available if rightmost, calibrated, etc
+[true* . comm_control_update(global_state((true||false),(true||false),(true||false),true, true, true, false, false, false, (true||false),(true||false),(true||false),(true||false), (true||false),(true||false)))]<down_pressed>false
