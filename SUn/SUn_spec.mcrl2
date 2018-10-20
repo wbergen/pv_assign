@@ -243,9 +243,9 @@ proc
 								
 							+ (h_below_cal(gs)) ->
 								(
-									send_action_state(global_state(sens_min_h(gs), sens_max_h(gs), sens_left(gs), sens_right(gs), docked(gs), calibrated(gs), emergency(gs), h_above_cal(gs), h_below_cal(gs), false, true, false, false, false, true)) . send_mot_vert_up . release_c_lock . ControlMod(global_state(sens_min_h(gs), sens_max_h(gs), sens_left(gs), sens_right(gs), docked(gs), calibrated(gs), emergency(gs), h_above_cal(gs), h_below_cal(gs), false, true, false, false, false, true))					
+									up_pressed . send_action_state(global_state(sens_min_h(gs), sens_max_h(gs), sens_left(gs), sens_right(gs), docked(gs), calibrated(gs), emergency(gs), h_above_cal(gs), h_below_cal(gs), false, true, false, false, false, true)) . send_mot_vert_up . release_c_lock . ControlMod(global_state(sens_min_h(gs), sens_max_h(gs), sens_left(gs), sens_right(gs), docked(gs), calibrated(gs), emergency(gs), h_above_cal(gs), h_below_cal(gs), false, true, false, false, false, true))					
 								)
-							+ (!h_above_cal(gs) && !h_above_cal(gs)) ->
+							+ (!h_above_cal(gs) && !h_below_cal(gs)) ->
 								(
 									(!sens_right(gs) && sens_left(gs)) ->
 										(
@@ -318,18 +318,19 @@ proc
 
 		acquire_s_lock.sum gs:Global_State.sensor_update_recv(gs) . (
 
-			(mot_vert_down(gs)) -> min_reached . send_sens_max_h(false) . send_sens_min_h(true) . release_s_lock . SensorMod(gs)
-			+(mot_vert_up(gs)) -> max_reached . send_sens_min_h(false) . send_sens_max_h(true) . release_s_lock . SensorMod(gs)
-			+(mot_hor_down(gs)) -> right_reached . send_rightmost(false) . send_leftmost(true) . release_s_lock . SensorMod(gs)
-			+(mot_hor_up(gs)) -> left_reached . send_leftmost(false) . send_rightmost(true) . release_s_lock . SensorMod(gs)
+			(mot_vert_down(gs) && (!calibrated(gs) || !docked(gs))) -> min_reached . send_sens_max_h(false) . send_sens_min_h(true) . release_s_lock . SensorMod(gs)
+			+(mot_vert_up(gs) && (!calibrated(gs) || !docked(gs))) -> max_reached . send_sens_min_h(false) . send_sens_max_h(true) . release_s_lock . SensorMod(gs)
+			+(mot_hor_down(gs)) -> right_reached . send_rightmost(true) . send_leftmost(false) . release_s_lock . SensorMod(gs)
+			+(mot_hor_up(gs)) -> left_reached . send_leftmost(true) . send_rightmost(false) . release_s_lock . SensorMod(gs)
 			+(calibrated(gs) && mot_vert_down(gs)) -> (
 
-				below_calibrated_detected . send_h_above_cal(false) . send_h_below_cal(true) . release_s_lock . SensorMod(gs)
-				+ reached_calibrated_height . send_h_above_cal(false) . send_h_below_cal(false) . release_s_lock . SensorMod(gs)
+				(!docked(gs)) -> below_calibrated_detected . send_h_above_cal(false) . send_h_below_cal(true) . release_s_lock . SensorMod(gs)
+				+ (docked(gs)) -> reached_calibrated_height . send_h_above_cal(false) . send_h_below_cal(false) . release_s_lock . SensorMod(gs)
 			)
 			+ (calibrated(gs) && mot_vert_up(gs)) -> (
-				above_calibrated_detected . send_h_below_cal(false) . send_h_above_cal(true) . release_s_lock . SensorMod(gs)
-				+ reached_calibrated_height . send_h_above_cal(false) . send_h_below_cal(false) . release_s_lock . SensorMod(gs)
+				
+				(!docked(gs)) -> above_calibrated_detected . send_h_below_cal(false) . send_h_above_cal(true) . release_s_lock . SensorMod(gs)
+				+ (docked(gs)) -> reached_calibrated_height . send_h_above_cal(false) . send_h_below_cal(false) . release_s_lock . SensorMod(gs)
 			)
 			+ release_s_lock . SensorMod(gs)
 		);
